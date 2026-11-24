@@ -1,0 +1,49 @@
+# LiteUAVDETR UAVDT dataset configuration adapted from the original project
+# conversion/evaluation setup and D-FINE: https://github.com/Peterande/D-FINE
+
+task: detection
+
+evaluator:
+  type: CocoEvaluator
+  iou_types: ['bbox', ]
+
+# The release converter maps UAVDT car/truck/bus to contiguous IDs 0/1/2.
+num_classes: 3
+remap_mscoco_category: False
+
+train_dataloader:
+  type: DataLoader
+  dataset:
+    type: CocoDetection
+    img_folder: ./data/UAVDT/UAV-benchmark-M
+    ann_file: ./data/UAVDT/coco_annotations/UAVDT-DET_train_coco.json
+    return_masks: False
+    transforms:
+      type: Compose
+      ops:
+        - {type: Resize, size: [640, 640]}
+        - {type: ConvertPILImage, dtype: 'float32', scale: True}
+        - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
+  shuffle: True
+  num_workers: 12
+  drop_last: True
+  collate_fn:
+    type: BatchImageCollateFunction
+
+val_dataloader:
+  type: DataLoader
+  dataset:
+    type: CocoDetection
+    img_folder: ./data/UAVDT/UAV-benchmark-M
+    ann_file: ./data/UAVDT/coco_annotations/UAVDT-DET_test_coco.json
+    return_masks: False
+    transforms:
+      type: Compose
+      ops:
+        - {type: Resize, size: [640, 640]}
+        - {type: ConvertPILImage, dtype: 'float32', scale: True}
+  shuffle: False
+  num_workers: 12
+  drop_last: False
+  collate_fn:
+    type: BatchImageCollateFunction

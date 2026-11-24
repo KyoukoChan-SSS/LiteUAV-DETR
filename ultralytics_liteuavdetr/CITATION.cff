@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+title: LiteUAVDETR for Ultralytics
+message: >-
+  If you use this software, please cite the LiteUAV-DETR paper (BMVC 2026)
+  as described in the main README, and retain the citations for Ultralytics,
+  D-FINE, and RT-DETR described in the third-party notices.
+type: software
+authors:
+  - name: The LiteUAVDETR Authors
+repository-code: >-
+  https://github.com/KyoukoChan-SSS/LiteUAV-DETR/tree/main/ultralytics_liteuavdetr
+url: >-
+  https://github.com/KyoukoChan-SSS/LiteUAV-DETR/tree/main/ultralytics_liteuavdetr
+license: AGPL-3.0

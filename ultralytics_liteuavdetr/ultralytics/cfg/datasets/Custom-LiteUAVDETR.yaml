@@ -1,0 +1,16 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+# Custom COCO JSON dataset template for LiteUAVDETR.
+
+path: /absolute/path/to/your-dataset
+train: images/train
+val: images/val
+train_annotations: annotations/instances_train.json
+val_annotations: annotations/instances_val.json
+
+# Raw COCO category IDs ordered by model class index. In this example,
+# model class 0 maps to category_id 1 and model class 1 maps to category_id 2.
+category_ids: [1, 2]
+
+names:
+  0: class_0
+  1: class_1

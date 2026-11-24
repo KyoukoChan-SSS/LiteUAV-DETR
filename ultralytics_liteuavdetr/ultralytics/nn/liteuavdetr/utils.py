@@ -1,0 +1,213 @@
+"""
+LiteUAVDETR integration Copyright (c) 2026 The LiteUAVDETR Authors.
+Included from D-FINE (https://github.com/Peterande/D-FINE)
+---------------------------------------------------------------------------------
+D-FINE: Redefine Regression Task of DETRs as Fine-grained Distribution Refinement
+Copyright (c) 2024 The D-FINE Authors. All Rights Reserved.
+---------------------------------------------------------------------------------
+Modified from RT-DETR (https://github.com/lyuwenyu/RT-DETR)
+Copyright (c) 2023 lyuwenyu. All Rights Reserved.
+"""
+
+import math
+from typing import List
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+def _grid_sample_bilinear(value: torch.Tensor, grid: torch.Tensor) -> torch.Tensor:
+    """Run D-FINE bilinear sampling, with an equivalent TensorRT-safe export graph."""
+    if not torch.onnx.is_in_onnx_export() or value.dtype not in {torch.float16, torch.bfloat16}:
+        return F.grid_sample(value, grid, mode="bilinear", padding_mode="zeros", align_corners=False)
+
+    # LiteUAVDETR (from D-FINE): TensorRT 10.16 produces NaNs for this model when GridSample is explicitly FP32,
+    # while its FP16 GridSample loses measurable AP. Export the same align_corners=False, zeros-padded interpolation
+    # as four bounded gathers so TensorRT does not invoke that kernel. Normal PyTorch training/inference stays on the
+    # original F.grid_sample path above.
+    output_dtype = value.dtype
+    n, c, h, w = value.shape
+    grid = grid.float()
+    x = ((grid[..., 0] + 1.0) * w - 1.0) * 0.5
+    y = ((grid[..., 1] + 1.0) * h - 1.0) * 0.5
+    x0, y0 = torch.floor(x), torch.floor(y)
+    x1, y1 = x0 + 1.0, y0 + 1.0
+
+    flat_value = value.float().reshape(n, c, h * w)
+
+    def gather(ix: torch.Tensor, iy: torch.Tensor) -> torch.Tensor:
+        valid = (ix >= 0) & (ix < w) & (iy >= 0) & (iy < h)
+        flat_index = (iy.clamp(0, h - 1) * w + ix.clamp(0, w - 1)).long().flatten(1)
+        gathered = flat_value.gather(2, flat_index.unsqueeze(1).expand(-1, c, -1))
+        return gathered.reshape(n, c, *grid.shape[1:-1]) * valid.unsqueeze(1)
+
+    top_left = gather(x0, y0) * ((x1 - x) * (y1 - y)).unsqueeze(1)
+    top_right = gather(x1, y0) * ((x - x0) * (y1 - y)).unsqueeze(1)
+    bottom_left = gather(x0, y1) * ((x1 - x) * (y - y0)).unsqueeze(1)
+    bottom_right = gather(x1, y1) * ((x - x0) * (y - y0)).unsqueeze(1)
+    return (top_left + top_right + bottom_left + bottom_right).to(output_dtype)
+
+
+def inverse_sigmoid(x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
+    x = x.clip(min=0.0, max=1.0)
+    return torch.log(x.clip(min=eps) / (1 - x).clip(min=eps))
+
+
+def bias_init_with_prob(prior_prob=0.01):
+    """initialize conv/fc bias value according to a given probability value."""
+    bias_init = float(-math.log((1 - prior_prob) / prior_prob))
+    return bias_init
+
+
+def deformable_attention_core_func(
+    value, value_spatial_shapes, sampling_locations, attention_weights
+):
+    """
+    Args:
+        value (Tensor): [bs, value_length, n_head, c]
+        value_spatial_shapes (Tensor|List): [n_levels, 2]
+        value_level_start_index (Tensor|List): [n_levels]
+        sampling_locations (Tensor): [bs, query_length, n_head, n_levels, n_points, 2]
+        attention_weights (Tensor): [bs, query_length, n_head, n_levels, n_points]
+
+    Returns:
+        output (Tensor): [bs, Length_{query}, C]
+    """
+    bs, _, n_head, c = value.shape
+    _, Len_q, _, n_levels, n_points, _ = sampling_locations.shape
+
+    split_shape = [h * w for h, w in value_spatial_shapes]
+    value_list = value.split(split_shape, dim=1)
+    sampling_grids = 2 * sampling_locations - 1
+    sampling_value_list = []
+    for level, (h, w) in enumerate(value_spatial_shapes):
+        # N_, H_*W_, M_, D_ -> N_, H_*W_, M_*D_ -> N_, M_*D_, H_*W_ -> N_*M_, D_, H_, W_
+        value_l_ = value_list[level].flatten(2).permute(0, 2, 1).reshape(bs * n_head, c, h, w)
+        # N_, Lq_, M_, P_, 2 -> N_, M_, Lq_, P_, 2 -> N_*M_, Lq_, P_, 2
+        sampling_grid_l_ = sampling_grids[:, :, :, level].permute(0, 2, 1, 3, 4).flatten(0, 1)
+        # N_*M_, D_, Lq_, P_
+        sampling_value_l_ = _grid_sample_bilinear(value_l_, sampling_grid_l_)
+        sampling_value_list.append(sampling_value_l_)
+    # (N_, Lq_, M_, L_, P_) -> (N_, M_, Lq_, L_, P_) -> (N_*M_, 1, Lq_, L_*P_)
+    attention_weights = attention_weights.permute(0, 2, 1, 3, 4).reshape(
+        bs * n_head, 1, Len_q, n_levels * n_points
+    )
+    output = (
+        (torch.stack(sampling_value_list, dim=-2).flatten(-2) * attention_weights)
+        .sum(-1)
+        .reshape(bs, n_head * c, Len_q)
+    )
+
+    return output.permute(0, 2, 1)
+
+
+def deformable_attention_core_func_v2(
+    value: torch.Tensor,
+    value_spatial_shapes,
+    sampling_locations: torch.Tensor,
+    attention_weights: torch.Tensor,
+    num_points_list: List[int],
+    method="default",
+):
+    """
+    Args:
+        value (Tensor): [bs, value_length, n_head, c]
+        value_spatial_shapes (Tensor|List): [n_levels, 2]
+        value_level_start_index (Tensor|List): [n_levels]
+        sampling_locations (Tensor): [bs, query_length, n_head, n_levels * n_points, 2]
+        attention_weights (Tensor): [bs, query_length, n_head, n_levels * n_points]
+
+    Returns:
+        output (Tensor): [bs, Length_{query}, C]
+    """
+    bs, n_head, c, _ = value[0].shape
+    _, Len_q, _, _, _ = sampling_locations.shape
+
+    # sampling_offsets [8, 480, 8, 12, 2]
+    if method == "default":
+        sampling_grids = 2 * sampling_locations - 1
+
+    elif method == "discrete":
+        sampling_grids = sampling_locations
+
+    sampling_grids = sampling_grids.permute(0, 2, 1, 3, 4).flatten(0, 1)
+    sampling_locations_list = sampling_grids.split(num_points_list, dim=-2)
+
+    sampling_value_list = []
+    for level, (h, w) in enumerate(value_spatial_shapes):
+        value_l = value[level].reshape(bs * n_head, c, h, w)
+        sampling_grid_l: torch.Tensor = sampling_locations_list[level]
+
+        if method == "default":
+            sampling_value_l = _grid_sample_bilinear(value_l, sampling_grid_l)
+
+        elif method == "discrete":
+            # n * m, seq, n, 2
+            sampling_coord = (
+                sampling_grid_l * torch.tensor([[w, h]], device=value_l.device) + 0.5
+            ).to(torch.int64)
+
+            # FIX ME? for rectangle input
+            sampling_coord = sampling_coord.clamp(0, h - 1)
+            sampling_coord = sampling_coord.reshape(bs * n_head, Len_q * num_points_list[level], 2)
+
+            s_idx = (
+                torch.arange(sampling_coord.shape[0], device=value_l.device)
+                .unsqueeze(-1)
+                .repeat(1, sampling_coord.shape[1])
+            )
+            sampling_value_l: torch.Tensor = value_l[
+                s_idx, :, sampling_coord[..., 1], sampling_coord[..., 0]
+            ]  # n l c
+
+            sampling_value_l = sampling_value_l.permute(0, 2, 1).reshape(
+                bs * n_head, c, Len_q, num_points_list[level]
+            )
+
+        sampling_value_list.append(sampling_value_l)
+
+    attn_weights = attention_weights.permute(0, 2, 1, 3).reshape(
+        bs * n_head, 1, Len_q, sum(num_points_list)
+    )
+    weighted_sample_locs = torch.concat(sampling_value_list, dim=-1) * attn_weights
+    output = weighted_sample_locs.sum(-1).reshape(bs, n_head * c, Len_q)
+
+    return output.permute(0, 2, 1)
+
+
+def get_activation(act: str, inpace: bool = True):
+    """get activation"""
+    if act is None:
+        return nn.Identity()
+
+    elif isinstance(act, nn.Module):
+        return act
+
+    act = act.lower()
+
+    if act == "silu" or act == "swish":
+        m = nn.SiLU()
+
+    elif act == "relu":
+        m = nn.ReLU()
+
+    elif act == "leaky_relu":
+        m = nn.LeakyReLU()
+
+    elif act == "silu":
+        m = nn.SiLU()
+
+    elif act == "gelu":
+        m = nn.GELU()
+
+    elif act == "hardsigmoid":
+        m = nn.Hardsigmoid()
+
+    else:
+        raise RuntimeError("")
+
+    if hasattr(m, "inplace"):
+        m.inplace = inpace
+
+    return m

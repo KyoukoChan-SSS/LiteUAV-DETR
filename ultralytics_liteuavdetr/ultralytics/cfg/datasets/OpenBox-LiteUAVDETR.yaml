@@ -1,0 +1,22 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+# LiteUAVDETR OpenBox template for a standard Ultralytics detection dataset.
+
+# Dataset layout:
+# your-dataset/
+# ├── images/
+# │   ├── train/
+# │   └── val/
+# └── labels/
+#     ├── train/  # one TXT file per image
+#     └── val/
+#
+# Each label row is: class_id center_x center_y width height
+# Class IDs are zero-indexed; box coordinates are normalized to 0..1.
+
+path: /absolute/path/to/your-dataset
+train: images/train
+val: images/val
+
+names:
+  0: class_0
+  1: class_1

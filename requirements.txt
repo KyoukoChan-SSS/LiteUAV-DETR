@@ -1,0 +1,39 @@
+# LiteUAVDETR reproducibility environment.
+# Verified interpreter: Python 3.11.15.
+# Verified CUDA stack: PyTorch 2.10.0 + CUDA 12.8 on Linux x86_64.
+#
+# Install the torch/torchvision wheels matching the host CUDA platform first.
+# A local build such as torch==2.10.0+cu128 satisfies the public
+# torch==2.10.0 pin below. Jetson users must keep the PyTorch/TensorRT builds
+# supplied for their JetPack release instead of installing this desktop lock.
+
+# Model, training, and validation
+torch==2.10.0
+torchvision==0.25.0
+numpy==1.26.4
+PyYAML==6.0.3
+Pillow==12.1.1
+scipy==1.17.0
+faster-coco-eval==1.7.0
+tensorboard==2.20.0
+tqdm==4.67.3
+packaging==25.0
+calflops==0.3.2
+# calflops imports transformers at import time but does not declare it.
+transformers
+matplotlib==3.10.8
+loguru==0.7.3
+
+# Image and ONNX tools
+opencv-python==4.9.0.80
+onnx==1.21.0
+onnxruntime==1.26.0; platform_machine != "aarch64"
+
+# Ultralytics and OpenBox entry points
+filelock==3.24.0
+requests==2.32.5
+psutil==5.9.8
+polars==1.40.1
+nvidia-ml-py==13.590.48
+ultralytics-thop==2.0.19
+albumentations==2.0.8

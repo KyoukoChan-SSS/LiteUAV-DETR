@@ -1,0 +1,20 @@
+LiteUAVDETR
+Copyright 2026 The LiteUAVDETR Authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It includes software derived from the following projects:
+
+D-FINE (https://github.com/Peterande/D-FINE)
+Copyright 2024 The D-FINE Authors. Licensed under the Apache License 2.0.
+
+RT-DETR (https://github.com/lyuwenyu/RT-DETR)
+Copyright 2023 lyuwenyu. Licensed under the Apache License 2.0.
+
+Dome-DETR (https://github.com/RicePasteM/Dome-DETR)
+Source of tools/dataset/visdrone2coco.py. Licensed under the Apache License 2.0.
+
+The directory ultralytics_liteuavdetr/ is a separately licensed work: a
+modified fork of Ultralytics (https://github.com/ultralytics/ultralytics)
+distributed under the GNU AGPL-3.0. See ultralytics_liteuavdetr/LICENSE and
+ultralytics_liteuavdetr/THIRD_PARTY_NOTICES.md.

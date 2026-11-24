@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "protocol": "visdrone_to_ood8_zero_shot",
+  "description": "Evaluate one VisDrone-trained LiteUAVDETR checkpoint on eight target datasets without fine-tuning.",
+  "category_space": {
+    "name": "VisDrone2019-DET",
+    "model_num_classes": 12,
+    "remap_mscoco_category": false,
+    "categories": [
+      {"id": 1, "name": "pedestrian"},
+      {"id": 2, "name": "people"},
+      {"id": 3, "name": "bicycle"},
+      {"id": 4, "name": "car"},
+      {"id": 5, "name": "van"},
+      {"id": 6, "name": "truck"},
+      {"id": 7, "name": "tricycle"},
+      {"id": 8, "name": "awning-tricycle"},
+      {"id": 9, "name": "bus"},
+      {"id": 10, "name": "motor"}
+    ]
+  },
+  "datasets": [
+    {
+      "name": "DroneVehicle",
+      "images": "DroneVehicle/test/testimg",
+      "annotations": "OOD/DroneVehicle/annotations/DroneVehicle_test_visdrone_ids.json",
+      "expected_images": 8980,
+      "expected_annotations_sha256": "cb9f5a0a9d54d85294a2fbd46f7e5d79ba12ba96680497f151348dbc105e699d",
+      "expected_annotation_category_ids": [4, 5, 6, 9]
+    },
+    {
+      "name": "AITODv2",
+      "images": "OOD/AITODv2/images/test",
+      "annotations": "OOD/AITODv2/annotations/AITODv2_test_dfine_visdrone_ids.json",
+      "expected_images": 14018,
+      "expected_annotations_sha256": "6a95d2239c9f6dacfa9d991795355412b3513a61d63c06ab83de69ad88478c6a",
+      "expected_annotation_category_ids": [1, 4]
+    },
+    {
+      "name": "SeaDronSeev2",
+      "images": "OOD/SeaDronSeev2/images/val",
+      "annotations": "OOD/SeaDronSeev2/annotations/SeaDronSeev2_val_dfine_visdrone_ids.json",
+      "expected_images": 1547,
+      "expected_annotations_sha256": "b7a7970eaa1636c1c78e39be5b553133617683d00ae4ab20ec8988ba7faf0691",
+      "expected_annotation_category_ids": [2]
+    },
+    {
+      "name": "Tiny_cityperson",
+      "images": "OOD/Tiny_cityperson/images/val",
+      "annotations": "OOD/Tiny_cityperson/annotations/Tiny_cityperson_val_dfine_visdrone_ids.json",
+      "expected_images": 500,
+      "expected_annotations_sha256": "585c11a62e85154ed009948f2e23c2b9e35efacc01a4b7f1063e08da41a90633",
+      "expected_annotation_category_ids": [1]
+    },
+    {
+      "name": "Tinyperson_non_bg",
+      "images": "OOD/Tinyperson_non_bg/images/test_non_bg",
+      "annotations": "OOD/Tinyperson_non_bg/annotations/Tinyperson_non_bg_test_non_bg_dfine_visdrone_ids.json",
+      "expected_images": 811,
+      "expected_annotations_sha256": "e47144f5e3045ae4b14e825caef0ebbcf7d17fde1012d0de623ffa451d68a66b",
+      "expected_annotation_category_ids": [1]
+    },
+    {
+      "name": "UAVDT",
+      "images": "OOD/UAVDT/images/val",
+      "annotations": "OOD/UAVDT/annotations/UAVDT_val_dfine_visdrone_ids.json",
+      "expected_images": 16580,
+      "expected_annotations_sha256": "1226cd8b4a3799a44dc64eeef37e04de62f1f5b13ebdc0c40dbe2066e61a74b6",
+      "expected_annotation_category_ids": [4, 6, 9]
+    },
+    {
+      "name": "MAVREC_aerial",
+      "images": "MAVREC/test-2/aerial",
+      "annotations": "OOD/MAVREC_aerial/annotations/MAVREC_aerial_test_dfine_visdrone_ids.json",
+      "expected_images": 1614,
+      "expected_annotations_sha256": "d7d82b38c0a577edb851ae62e3e432145b22fbe556b939e5b178c05f16a2f71d",
+      "expected_annotation_category_ids": [1, 3, 4, 5, 6, 9]
+    },
+    {
+      "name": "VTUAV_rgb",
+      "images": "VTUAV_v1.0/test/rgb",
+      "annotations": "OOD/VTUAV_rgb/annotations/VTUAV_rgb_test_dfine_visdrone_ids.json",
+      "expected_images": 5378,
+      "expected_annotations_sha256": "3c5ed3a27642b2b3d36497b8393a02c821b8938943b5bb7974b693c32d6ffdf5",
+      "expected_annotation_category_ids": [1]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+# VisDrone2019-DET layout produced by tools/dataset/visdrone2coco.py.
+
+path: VisDrone2019/Image
+train: DET-train/images
+val: DET-val/images
+train_annotations: annotation_external_tool/VisDrone2019-DET_train_coco.json
+val_annotations: annotation_external_tool/VisDrone2019-DET_val_coco.json
+
+names:
+  0: ignored-region
+  1: pedestrian
+  2: people
+  3: bicycle
+  4: car
+  5: van
+  6: truck
+  7: tricycle
+  8: awning-tricycle
+  9: bus
+  10: motor
+  11: others

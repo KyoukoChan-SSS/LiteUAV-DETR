@@ -1,0 +1,16 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+# Official supervised UAVDT split produced by tools/dataset/uavdt2coco.py.
+
+path: UAVDT
+train: UAV-benchmark-M
+val: UAV-benchmark-M
+train_annotations: coco_annotations/UAVDT-DET_train_coco.json
+val_annotations: coco_annotations/UAVDT-DET_test_coco.json
+
+# Explicit raw COCO IDs written by the release converter.
+category_ids: [0, 1, 2]
+
+names:
+  0: car
+  1: truck
+  2: bus

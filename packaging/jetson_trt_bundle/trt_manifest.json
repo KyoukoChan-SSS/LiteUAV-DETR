@@ -1,0 +1,41 @@
+{
+  "_schema": {
+    "purpose": "Self-contained Jetson TensorRT B/C bundle for LiteUAVDETR, whose model implementation is adapted from https://github.com/Peterande/D-FINE.",
+    "fields": {
+      "tag": "unique id; engine + result filename stem",
+      "model_name": "human-readable model variant",
+      "onnx": "relative path (under this folder) to the fp32 ONNX exported off-device",
+      "source_repo": "repo-relative source tree used for export",
+      "config": "repo-relative training/export config path",
+      "weights": "repo-relative checkpoint path used for export",
+      "export_script": "repo-relative script that produced the ONNX",
+      "image_size": "square input side",
+      "kind": "liteuavdetr_post = post-mode graph (images+orig_target_sizes -> labels/boxes/scores)"
+    },
+    "note": "ONNX is portable across machines; TensorRT engines are NOT (GPU/CUDA/TRT-version specific) and are built here on the Jetson."
+  },
+  "models": [
+    {
+      "tag": "liteuavdetr_ultrafast",
+      "model_name": "LiteUAVDETR-UltraFast",
+      "source_repo": ".",
+      "config": "configs/liteuavdetr/custom/liteuavdetr_ultrafast_visdrone_640.yml",
+      "weights": "checkpoints/stripfact_res_n_visdrone_best_stg2.pth",
+      "export_script": "scripts/export_liteuavdetr_onnx.sh",
+      "onnx": "onnx/liteuavdetr_ultrafast_visdrone_fp32.onnx",
+      "image_size": 640,
+      "kind": "liteuavdetr_post"
+    },
+    {
+      "tag": "liteuavdetr_fast",
+      "model_name": "LiteUAVDETR-Fast",
+      "source_repo": ".",
+      "config": "configs/liteuavdetr/custom/liteuavdetr_fast_visdrone_640.yml",
+      "weights": "checkpoints/stripfact_res_m_visdrone_best_stg2.pth",
+      "export_script": "scripts/export_liteuavdetr_onnx.sh",
+      "onnx": "onnx/liteuavdetr_fast_visdrone_fp32.onnx",
+      "image_size": 640,
+      "kind": "liteuavdetr_post"
+    }
+  ]
+}
